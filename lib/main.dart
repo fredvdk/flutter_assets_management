@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_assets_management/database/assets_repository.dart';
 import 'package:flutter_assets_management/models/asset.dart';
 import 'package:flutter_assets_management/widgets/asset_card.dart';
 import 'package:flutter_assets_management/widgets/totals_card.dart';
 
-void main() {
+void main() async {
+  await dotenv.load();
   runApp(const MyApp());
 }
 

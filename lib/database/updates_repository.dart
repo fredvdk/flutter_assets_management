@@ -1,9 +1,10 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/update.dart';
+import '../config/env.dart';
 
 class UpdatesRepository {
-  final String baseUrl = 'http://server:3000/updates';
+  late final String baseUrl = '${Env.baseUrl}/updates';
 
   // CREATE
   Future<Update> createUpdate(Update update) async {

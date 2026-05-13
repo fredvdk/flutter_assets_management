@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_assets_management/database/updates_repository.dart';
 import 'package:flutter_assets_management/models/asset.dart';
 import 'package:flutter_assets_management/models/update.dart';
+import 'package:flutter_assets_management/pages/editpage.dart';
+import 'package:flutter_assets_management/pages/updatespage.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
+import 'asset_styling.dart';
 
 final formatter = NumberFormat.decimalPattern('nl_BE');
 
@@ -63,7 +66,7 @@ class AssetCard extends StatelessWidget {
       ),
 
       child: Card(
-        color: _getColor(),
+        color: getAssetCardColor(asset),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
 
         child: Padding(
@@ -73,19 +76,28 @@ class AssetCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
 
             children: [
-              Text(
-                '€ ${formatter.format(asset.getLastValue())} '
-                '- ${asset.name ?? 'N/A'}',
+              Row(children: [
+                Expanded(
+                  child: Text(
+                    '€ ${formatter.format(asset.getLastValue())} '
+                    '- ${asset.name ?? 'N/A'}',
 
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
+                Icon(getAssetTypeIcon(asset), size: 28),
+                const SizedBox(width: 8),
+                Icon(getValueChangeIcon(asset), size: 24, color: getValueChangeColor(asset)),
+              ],
               ),
 
               const SizedBox(height: 8),
 
-              Text('Bank: ${asset.bank ?? 'N/A'}'),
+              if(asset.bank != null && asset.bank!.trim().isNotEmpty)
+                Text('Bank: ${asset.bank}'),
 
               if (asset.notes != null && asset.notes!.trim().isNotEmpty)
                 Text('Notes: ${asset.notes}'),
@@ -164,15 +176,21 @@ class AssetCard extends StatelessWidget {
   }
 
   void _getHistory(BuildContext context) {
-    ScaffoldMessenger.of(
+    Navigator.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Get history')));
+    ).push(MaterialPageRoute(builder: (context) => UpdatesPage(asset: asset)));
+
   }
 
   void _editAsset(BuildContext context) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Edit asset')));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => EditPage(
+          asset: asset,
+          onUpdate: onUpdate,
+        ),
+      ),
+    );
   }
 
   Future<void> _deleteAsset(BuildContext context) async {
@@ -210,19 +228,4 @@ class AssetCard extends StatelessWidget {
     }
   }
 
-  Color? _getColor() {
-    switch (asset.type?.toLowerCase()) {
-      case 'beleggingen':
-        return Colors.green[50];
-
-      case 'cash':
-        return Colors.blue[50];
-
-      case 'vastgoed':
-        return Colors.brown[50];
-
-      default:
-        return Colors.grey[50];
-    }
-  }
 }

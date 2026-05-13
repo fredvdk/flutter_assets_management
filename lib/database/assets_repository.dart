@@ -2,9 +2,10 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import '../models/asset.dart';
+import '../config/env.dart';
 
 class AssetRepository {
-  static const String _baseUrl = 'http://server:3000/assets';
+  late final String _baseUrl = '${Env.baseUrl}/assets';
 
   final http.Client _client;
 
