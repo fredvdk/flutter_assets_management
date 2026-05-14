@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
 import '../models/asset.dart';
 import '../config/env.dart';
 import 'local_database.dart';
@@ -32,7 +33,7 @@ class AssetRepository {
             .map((item) => Asset.fromJson(item))
             .toList();
 
-        // Cache the fetched assets locally    
+        // Cache the fetched assets locally
         await _localDb.insertAssets(assets);
         await Future.wait(
           assets.map((asset) => _localDb.insertUpdates(asset.updates)),
@@ -46,71 +47,66 @@ class AssetRepository {
     }
   }
 
-  Future<Asset> fetchAsset(int id) async {
-    final isOnline = await _connectivity.isConnected;
-
-    if (isOnline) {
-      try {
-        final response = await _client.get(Uri.parse('$_baseUrl/$id'));
-        _ensureSuccess(response);
-        final asset = Asset.fromJson(jsonDecode(response.body));
-        await _localDb.insertAsset(asset);
-        return asset;
-      } catch (e) {
-        final cached = await _localDb.getAssetById(id.toString());
-        if (cached != null) return cached;
-        rethrow;
-      }
-    } else {
-      final cached = await _localDb.getAssetById(id.toString());
-      if (cached != null) return cached;
-      throw Exception('Offline: Asset not available locally');
-    }
-  }
 
   Future<Asset> createAsset(Asset asset) async {
     final isOnline = await _connectivity.isConnected;
+    final assetWithId = asset.id.isEmpty
+        ? Asset(
+            id: const Uuid().v4(),
+            name: asset.name,
+            type: asset.type,
+            bank: asset.bank,
+            createdBy: asset.createdBy,
+            created: asset.created,
+            notes: asset.notes,
+            updates: asset.updates,
+          )
+        : asset;
 
     if (isOnline) {
       try {
         final response = await _client.post(
           Uri.parse(_baseUrl),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(asset.toJson(includeUpdates: false)),
+          headers: {
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+            },
+          body: jsonEncode(assetWithId.toJson(includeUpdates: false)),
         );
         _ensureSuccess(response, acceptedStatuses: [200, 201]);
-        final createdAsset = Asset.fromJson(jsonDecode(response.body));
+        final List<dynamic> json = jsonDecode(response.body);
+        final createdAsset = Asset.fromJson(json.first as Map<String, dynamic>);
         await _localDb.insertAsset(createdAsset);
 
-        if (asset.updates.isNotEmpty) {
+        if (assetWithId.updates.isNotEmpty) {
           final updatesRepository = UpdatesRepository();
-          for (var update in asset.updates) {
+          for (var update in assetWithId.updates) {
             await updatesRepository.createUpdate(update);
           }
         }
 
         return createdAsset;
       } catch (e) {
-        await _localDb.insertAsset(asset);
+        await _localDb.insertAsset(assetWithId);
         await _localDb.addToSyncQueue(
-          id: asset.id,
+          id: assetWithId.id,
           operation: 'CREATE',
           entityType: 'asset',
-          entityId: asset.id,
-          data: asset.toJson(),
+          entityId: assetWithId.id,
+          data: assetWithId.toJson(),
         );
-        return asset;
+        return assetWithId;
       }
     } else {
-      await _localDb.insertAsset(asset);
+      await _localDb.insertAsset(assetWithId);
       await _localDb.addToSyncQueue(
-        id: asset.id,
+        id: assetWithId.id,
         operation: 'CREATE',
         entityType: 'asset',
-        entityId: asset.id,
-        data: asset.toJson(),
+        entityId: assetWithId.id,
+        data: assetWithId.toJson(),
       );
-      return asset;
+      return assetWithId;
     }
   }
 
@@ -125,7 +121,7 @@ class AssetRepository {
             'Content-Type': 'application/json',
             'Prefer': 'return=representation',
           },
-          body: jsonEncode(asset.toJson()),
+          body: jsonEncode(asset.toJson(includeUpdates: false)),
         );
         _ensureSuccess(response);
         final List<dynamic> json = jsonDecode(response.body);
@@ -156,32 +152,34 @@ class AssetRepository {
     }
   }
 
-  Future<void> deleteAsset(int id) async {
+  Future<void> deleteAsset(String id) async {
     final isOnline = await _connectivity.isConnected;
-    final idStr = id.toString();
 
     if (isOnline) {
       try {
-        final response = await _client.delete(Uri.parse('$_baseUrl/$id'));
+        final uri = Uri.parse('$_baseUrl?id=eq.$id');
+        final response = await _client.delete(
+          uri,
+          headers: {'Prefer': 'return=minimal'},
+        );
         _ensureSuccess(response, acceptedStatuses: [200, 204]);
-        await _localDb.deleteAsset(idStr);
+        await _localDb.deleteAsset(id);
       } catch (e) {
-        await _localDb.deleteAsset(idStr);
         await _localDb.addToSyncQueue(
-          id: idStr,
+          id: id,
           operation: 'DELETE',
           entityType: 'asset',
-          entityId: idStr,
+          entityId: id,
           data: {},
         );
+        rethrow;
       }
     } else {
-      await _localDb.deleteAsset(idStr);
       await _localDb.addToSyncQueue(
-        id: idStr,
+        id: id,
         operation: 'DELETE',
         entityType: 'asset',
-        entityId: idStr,
+        entityId: id,
         data: {},
       );
     }

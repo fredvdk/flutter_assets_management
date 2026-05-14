@@ -19,7 +19,7 @@ class _EditPageState extends State<EditPage> {
   late String _selectedType;
   bool _isSaving = false;
 
-  final List<String> _assetTypes = ['beleggingen', 'cash', 'vastgoed'];
+  final List<String> _assetTypes = ['Beleggingen', 'Cash', 'Vastgoed'];
 
   @override
   void initState() {
@@ -27,7 +27,7 @@ class _EditPageState extends State<EditPage> {
     _nameController = TextEditingController(text: widget.asset.name ?? '');
     _bankController = TextEditingController(text: widget.asset.bank ?? '');
     _notesController = TextEditingController(text: widget.asset.notes ?? '');
-    _selectedType = _assetTypes.contains(widget.asset.type) ? widget.asset.type! : 'cash';
+    _selectedType = widget.asset.type!;
   }
 
   @override

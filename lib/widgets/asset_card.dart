@@ -222,7 +222,7 @@ class AssetCard extends StatelessWidget {
 
     if (confirmed == true) {
       try {
-        await AssetRepository().deleteAsset(int.parse(asset.id));
+        await AssetRepository().deleteAsset(asset.id);
         if (context.mounted) {
           onUpdate?.call();
           ScaffoldMessenger.of(context).showSnackBar(
