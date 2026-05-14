@@ -27,7 +27,7 @@ class Asset {
   }
 
   // Convert Asset object to JSON
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toJson({bool includeUpdates = true}) {
     return {
       'id': id,
       'name': name,
@@ -36,7 +36,7 @@ class Asset {
       'created_by': createdBy,
       'created': created?.toIso8601String(),
       'notes': notes,
-      'updates': updates.map((update) => update.toJson()).toList()
+      if (includeUpdates) 'updates': updates.map((update) => update.toJson()).toList()
     };
   }
 

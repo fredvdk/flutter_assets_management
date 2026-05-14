@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_assets_management/database/assets_repository.dart';
 import 'package:flutter_assets_management/database/updates_repository.dart';
 import 'package:flutter_assets_management/models/asset.dart';
 import 'package:flutter_assets_management/models/update.dart';
@@ -220,11 +221,24 @@ class AssetCard extends StatelessWidget {
     );
 
     if (confirmed == true) {
-      // delete logic here
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('${asset.name} deleted')));
+      try {
+        await AssetRepository().deleteAsset(int.parse(asset.id));
+        if (context.mounted) {
+          onUpdate?.call();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${asset.name} deleted')),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete asset: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 

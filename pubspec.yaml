@@ -1,5 +1,8 @@
-name: flutter_assets_management
-description: "A new Flutter project."
+config_name:
+  name: "Financial Assets"
+
+name: "flutter_assets_management"
+description: "A Flutter application to manage your assets and their updates. Keep track of your investments, monitor their performance, and make informed decisions with ease. Whether you're a seasoned investor or just starting out, this app provides a user-friendly interface to help you stay organized and on top of your financial portfolio."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -38,10 +41,16 @@ dependencies:
   intl: ^0.20.2
   flutter_slidable: ^4.0.3
   flutter_dotenv: ^6.0.1
+  sqflite: ^2.3.0
+  sqflite_common_ffi: ^2.3.0
+  path: ^1.9.0
+  connectivity_plus: ^6.0.0
+  uuid: ^4.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -49,6 +58,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  rename_app: ^1.6.6
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -90,3 +100,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  image_path: "assets/icon.png"
+  android:
+    notification_icon: ic_launcher
+  ios: true
