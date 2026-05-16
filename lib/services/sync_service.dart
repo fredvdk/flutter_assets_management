@@ -28,11 +28,16 @@ class SyncService {
 
     try {
       final pendingItems = await _localDb.getPendingSyncQueue();
+      print('Syncing ${pendingItems.length} pending operations...');
 
       for (var item in pendingItems) {
         final success = await _syncItem(item);
         if (success) {
           await _localDb.removeSyncQueueItem(item['id'] as String);
+        } else {
+          // If a sync fails, we stop to maintain order (especially for CREATE then UPDATE)
+          print('Sync failed for item ${item['id']}, stopping batch');
+          break;
         }
       }
     } finally {
@@ -55,6 +60,7 @@ class SyncService {
 
       return false;
     } catch (e) {
+      print('Error syncing item: $e');
       return false;
     }
   }
@@ -87,7 +93,8 @@ class SyncService {
 
         case 'DELETE':
           final response = await _client.delete(
-            Uri.parse('$_assetsBaseUrl/$entityId'),
+            Uri.parse('$_assetsBaseUrl?id=eq.$entityId'),
+            headers: {'Prefer': 'return=minimal'},
           );
           return response.statusCode == 200 || response.statusCode == 204;
 
@@ -119,7 +126,8 @@ class SyncService {
 
         case 'DELETE':
           final response = await _client.delete(
-            Uri.parse('$_updatesBaseUrl/$entityId'),
+            Uri.parse('$_updatesBaseUrl?id=eq.$entityId'),
+            headers: {'Prefer': 'return=minimal'},
           );
           return response.statusCode == 200 || response.statusCode == 204;
 

@@ -25,6 +25,7 @@ class Update {
   // Convert Update object to JSON
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'date': date.toIso8601String(),
       'value': value,
       'asset_id': assetId,

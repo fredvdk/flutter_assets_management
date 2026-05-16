@@ -10,11 +10,12 @@ class UpdatesRepository {
   late final String baseUrl = '${Env.baseUrl}/updates';
   final LocalDatabase _localDb = LocalDatabase();
   final ConnectivityService _connectivity = ConnectivityService();
+  final _uuid = const Uuid();
 
   // CREATE
   Future<Update> createUpdate(Update update) async {
     final isOnline = await _connectivity.isServerAvailable;
-    final updateId = const Uuid().v4();
+    final updateId = update.id.isEmpty ? _uuid.v4() : update.id;
     final newUpdate = Update(
       id: updateId,
       date: update.date,
@@ -47,7 +48,7 @@ class UpdatesRepository {
       } catch (e) {
         await _localDb.insertUpdate(newUpdate);
         await _localDb.addToSyncQueue(
-          id: updateId,
+          id: _uuid.v4(),
           operation: 'CREATE',
           entityType: 'update',
           entityId: updateId,
@@ -58,7 +59,7 @@ class UpdatesRepository {
     } else {
       await _localDb.insertUpdate(newUpdate);
       await _localDb.addToSyncQueue(
-        id: updateId,
+        id: _uuid.v4(),
         operation: 'CREATE',
         entityType: 'update',
         entityId: updateId,
@@ -68,51 +69,10 @@ class UpdatesRepository {
     }
   }
 
-  // READ (Get all)
-  Future<List<Update>> getAllUpdates() async {
-    final isOnline = await _connectivity.isServerAvailable;
-
-    if (isOnline) {
-      try {
-        final response = await http.get(Uri.parse(baseUrl));
-
-        if (response.statusCode == 200) {
-          List<dynamic> data = jsonDecode(response.body);
-          final updates = data.map((json) => Update.fromJson(json)).toList();
-          await _localDb.insertUpdates(updates);
-          return updates;
-        } else {
-          return _localDb.getUpdatesByAssetId('');
-        }
-      } catch (e) {
-        return [];
-      }
-    } else {
-      return [];
-    }
-  }
-
-  // READ (Get by ID)
-  Future<Update> getUpdateById(String id) async {
-    final isOnline = await _connectivity.isServerAvailable;
-
-    if (isOnline) {
-      try {
-        final response = await http.get(Uri.parse('$baseUrl/$id'));
-
-        if (response.statusCode == 200) {
-          final update = Update.fromJson(jsonDecode(response.body));
-          await _localDb.insertUpdate(update);
-          return update;
-        } else {
-          throw Exception('Failed to load update: ${response.statusCode}');
-        }
-      } catch (e) {
-        throw Exception('Error fetching update: $e');
-      }
-    } else {
-      throw Exception('Offline: Cannot fetch update details');
-    }
+  // READ (Get all updates for an asset)
+  Future<List<Update>> getUpdatesForAsset(String assetId) async {
+    // Local database is the primary source for specific asset updates to ensure offline support
+    return await _localDb.getUpdatesByAssetId(assetId);
   }
 
   // DELETE
@@ -121,7 +81,10 @@ class UpdatesRepository {
 
     if (isOnline) {
       try {
-        final response = await http.delete(Uri.parse('$baseUrl/$id'));
+        final response = await http.delete(
+          Uri.parse('$baseUrl?id=eq.$id'),
+          headers: {'Prefer': 'return=minimal'},
+        );
 
         if (response.statusCode == 200 || response.statusCode == 204) {
           await _localDb.deleteUpdate(id);
@@ -131,7 +94,7 @@ class UpdatesRepository {
       } catch (e) {
         await _localDb.deleteUpdate(id);
         await _localDb.addToSyncQueue(
-          id: id,
+          id: _uuid.v4(),
           operation: 'DELETE',
           entityType: 'update',
           entityId: id,
@@ -141,7 +104,7 @@ class UpdatesRepository {
     } else {
       await _localDb.deleteUpdate(id);
       await _localDb.addToSyncQueue(
-        id: id,
+        id: _uuid.v4(),
         operation: 'DELETE',
         entityType: 'update',
         entityId: id,

@@ -14,11 +14,12 @@ class AssetRepository {
   final http.Client _client;
   final LocalDatabase _localDb = LocalDatabase();
   final ConnectivityService _connectivity = ConnectivityService();
+  final UpdatesRepository _updatesRepo = UpdatesRepository();
+  final _uuid = const Uuid();
 
   AssetRepository({http.Client? client}) : _client = client ?? http.Client();
 
-  Future<List<Asset>> fetchAssets() async {;
-
+  Future<List<Asset>> fetchAssets() async {
     if (await _connectivity.isServerAvailable) {
       print('Server available, fetching assets from server');
       try {
@@ -35,11 +36,14 @@ class AssetRepository {
 
         // Cache the fetched assets locally
         await _localDb.insertAssets(assets);
-        await Future.wait(
-          assets.map((asset) => _localDb.insertUpdates(asset.updates)),
-        );
+        
+        // Flatten all updates to insert them in a single batch
+        final allUpdates = assets.expand((asset) => asset.updates).toList();
+        await _localDb.insertUpdates(allUpdates);
+        
         return assets;
       } catch (e) {
+        print('Error fetching from server, falling back to local: $e');
         return _localDb.getAllAssets();
       }
     } else {
@@ -53,7 +57,7 @@ class AssetRepository {
     final isServerAvailable = await _connectivity.isServerAvailable;
     final assetWithId = asset.id.isEmpty
         ? Asset(
-            id: const Uuid().v4(),
+            id: _uuid.v4(),
             name: asset.name,
             type: asset.type,
             bank: asset.bank,
@@ -75,40 +79,37 @@ class AssetRepository {
           body: jsonEncode(assetWithId.toJson(includeUpdates: false)),
         );
         _ensureSuccess(response, acceptedStatuses: [200, 201]);
+        
         final List<dynamic> json = jsonDecode(response.body);
         final createdAsset = Asset.fromJson(json.first as Map<String, dynamic>);
         await _localDb.insertAsset(createdAsset);
 
+        // Sync updates if any exist
         if (assetWithId.updates.isNotEmpty) {
-          final updatesRepository = UpdatesRepository();
           for (var update in assetWithId.updates) {
-            await updatesRepository.createUpdate(update);
+            await _updatesRepo.createUpdate(update);
           }
         }
 
         return createdAsset;
       } catch (e) {
-        await _localDb.insertAsset(assetWithId);
-        await _localDb.addToSyncQueue(
-          id: assetWithId.id,
-          operation: 'CREATE',
-          entityType: 'asset',
-          entityId: assetWithId.id,
-          data: assetWithId.toJson(),
-        );
-        return assetWithId;
+        return _handleOfflineCreate(assetWithId);
       }
     } else {
-      await _localDb.insertAsset(assetWithId);
-      await _localDb.addToSyncQueue(
-        id: assetWithId.id,
-        operation: 'CREATE',
-        entityType: 'asset',
-        entityId: assetWithId.id,
-        data: assetWithId.toJson(),
-      );
-      return assetWithId;
+      return _handleOfflineCreate(assetWithId);
     }
+  }
+
+  Future<Asset> _handleOfflineCreate(Asset asset) async {
+    await _localDb.insertAsset(asset);
+    await _localDb.addToSyncQueue(
+      id: _uuid.v4(),
+      operation: 'CREATE',
+      entityType: 'asset',
+      entityId: asset.id,
+      data: asset.toJson(includeUpdates: false), // Updates are handled by their own repo sync
+    );
+    return asset;
   }
 
   Future<Asset> updateAsset(String id, Asset asset) async {
@@ -130,27 +131,23 @@ class AssetRepository {
         await _localDb.updateAsset(updatedAsset);
         return updatedAsset;
       } catch (e) {
-        await _localDb.updateAsset(asset);
-        await _localDb.addToSyncQueue(
-          id: id,
-          operation: 'UPDATE',
-          entityType: 'asset',
-          entityId: id,
-          data: asset.toJson(),
-        );
-        return asset;
+        return _handleOfflineUpdate(id, asset);
       }
     } else {
-      await _localDb.updateAsset(asset);
-      await _localDb.addToSyncQueue(
-        id: id,
-        operation: 'UPDATE',
-        entityType: 'asset',
-        entityId: id,
-        data: asset.toJson(),
-      );
-      return asset;
+      return _handleOfflineUpdate(id, asset);
     }
+  }
+
+  Future<Asset> _handleOfflineUpdate(String id, Asset asset) async {
+    await _localDb.updateAsset(asset);
+    await _localDb.addToSyncQueue(
+      id: _uuid.v4(),
+      operation: 'UPDATE',
+      entityType: 'asset',
+      entityId: id,
+      data: asset.toJson(includeUpdates: false),
+    );
+    return asset;
   }
 
   Future<void> deleteAsset(String id) async {
@@ -166,24 +163,22 @@ class AssetRepository {
         _ensureSuccess(response, acceptedStatuses: [200, 204]);
         await _localDb.deleteAsset(id);
       } catch (e) {
-        await _localDb.addToSyncQueue(
-          id: id,
-          operation: 'DELETE',
-          entityType: 'asset',
-          entityId: id,
-          data: {},
-        );
-        rethrow;
+        await _handleOfflineDelete(id);
       }
     } else {
-      await _localDb.addToSyncQueue(
-        id: id,
-        operation: 'DELETE',
-        entityType: 'asset',
-        entityId: id,
-        data: {},
-      );
+      await _handleOfflineDelete(id);
     }
+  }
+
+  Future<void> _handleOfflineDelete(String id) async {
+    await _localDb.deleteAsset(id);
+    await _localDb.addToSyncQueue(
+      id: _uuid.v4(),
+      operation: 'DELETE',
+      entityType: 'asset',
+      entityId: id,
+      data: {},
+    );
   }
 
   void _ensureSuccess(http.Response response, {List<int>? acceptedStatuses}) {
