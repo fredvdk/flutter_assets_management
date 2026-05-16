@@ -17,10 +17,10 @@ class AssetRepository {
 
   AssetRepository({http.Client? client}) : _client = client ?? http.Client();
 
-  Future<List<Asset>> fetchAssets() async {
-    final isOnline = await _connectivity.isConnected;
+  Future<List<Asset>> fetchAssets() async {;
 
-    if (isOnline) {
+    if (await _connectivity.isServerAvailable) {
+      print('Server available, fetching assets from server');
       try {
         final response = await _client.get(
           Uri.parse(
@@ -43,13 +43,14 @@ class AssetRepository {
         return _localDb.getAllAssets();
       }
     } else {
+      print('Server not available, loading assets from local cache');
       return _localDb.getAllAssets();
     }
   }
 
 
   Future<Asset> createAsset(Asset asset) async {
-    final isOnline = await _connectivity.isConnected;
+    final isServerAvailable = await _connectivity.isServerAvailable;
     final assetWithId = asset.id.isEmpty
         ? Asset(
             id: const Uuid().v4(),
@@ -63,7 +64,7 @@ class AssetRepository {
           )
         : asset;
 
-    if (isOnline) {
+    if (isServerAvailable) {
       try {
         final response = await _client.post(
           Uri.parse(_baseUrl),
@@ -111,9 +112,9 @@ class AssetRepository {
   }
 
   Future<Asset> updateAsset(String id, Asset asset) async {
-    final isOnline = await _connectivity.isConnected;
+    final isServerAvailable = await _connectivity.isServerAvailable;
 
-    if (isOnline) {
+    if (isServerAvailable) {
       try {
         final response = await _client.patch(
           Uri.parse('$_baseUrl?id=eq.$id'),
@@ -153,9 +154,9 @@ class AssetRepository {
   }
 
   Future<void> deleteAsset(String id) async {
-    final isOnline = await _connectivity.isConnected;
+    final isServerAvailable = await _connectivity.isServerAvailable;
 
-    if (isOnline) {
+    if (isServerAvailable) {
       try {
         final uri = Uri.parse('$_baseUrl?id=eq.$id');
         final response = await _client.delete(

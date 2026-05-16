@@ -21,7 +21,7 @@ class _NewAssetPageState extends State<NewAssetPage> {
   late String _selectedType;
   bool _isLoading = false;
 
-  final List<String> _assetTypes = ['beleggingen', 'cash', 'vastgoed'];
+  final List<String> _assetTypes = ['Beleggingen', 'Cash', 'Vastgoed'];
 
   @override
   void initState() {

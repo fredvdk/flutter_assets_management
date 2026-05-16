@@ -13,7 +13,7 @@ class UpdatesRepository {
 
   // CREATE
   Future<Update> createUpdate(Update update) async {
-    final isOnline = await _connectivity.isConnected;
+    final isOnline = await _connectivity.isServerAvailable;
     final updateId = const Uuid().v4();
     final newUpdate = Update(
       id: updateId,
@@ -70,7 +70,7 @@ class UpdatesRepository {
 
   // READ (Get all)
   Future<List<Update>> getAllUpdates() async {
-    final isOnline = await _connectivity.isConnected;
+    final isOnline = await _connectivity.isServerAvailable;
 
     if (isOnline) {
       try {
@@ -94,7 +94,7 @@ class UpdatesRepository {
 
   // READ (Get by ID)
   Future<Update> getUpdateById(String id) async {
-    final isOnline = await _connectivity.isConnected;
+    final isOnline = await _connectivity.isServerAvailable;
 
     if (isOnline) {
       try {
@@ -117,7 +117,7 @@ class UpdatesRepository {
 
   // DELETE
   Future<void> deleteUpdate(String id) async {
-    final isOnline = await _connectivity.isConnected;
+    final isOnline = await _connectivity.isServerAvailable;
 
     if (isOnline) {
       try {
