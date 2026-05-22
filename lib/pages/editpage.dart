@@ -18,6 +18,7 @@ class _EditPageState extends State<EditPage> {
   late TextEditingController _notesController;
   late String _selectedType;
   bool _isSaving = false;
+  bool _isDeleting = false;
 
   final List<String> _assetTypes = ['Beleggingen', 'Cash', 'Vastgoed'];
 
@@ -36,6 +37,53 @@ class _EditPageState extends State<EditPage> {
     _bankController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+   Future<void> _deleteAsset(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete Asset'),
+          content: Text('Are you sure you want to delete ${widget.asset.name}?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: const Text('Cancel'),
+            ),
+
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      try {
+        await AssetRepository().deleteAsset(widget.asset.id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('${widget.asset.name} deleted')));
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete asset: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _saveAsset() async {
@@ -160,6 +208,20 @@ class _EditPageState extends State<EditPage> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Text('Save Changes'),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 240, 189, 189),
+                ),
+                onPressed: () => _deleteAsset(context),
+                child: _isDeleting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Delete Asset'),
               ),
             ],
           ),

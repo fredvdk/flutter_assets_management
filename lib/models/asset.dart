@@ -8,6 +8,7 @@ class Asset {
   final String? createdBy;
   final DateTime? created;
   final String? notes;
+  final String? prompt;
   final List<Update> updates;
 
   Asset({
@@ -18,12 +19,13 @@ class Asset {
     this.createdBy,
     this.created,
     this.notes,
+    this.prompt,
     required this.updates,
   });
 
   @override
   String toString() {
-    return 'Asset{id: $id, name: $name, type: $type, bank: $bank, createdBy: $createdBy, created: $created, notes: $notes, updates: $updates.map((update) => update.toString())}';
+    return 'Asset{id: $id, name: $name, type: $type, bank: $bank, createdBy: $createdBy, created: $created, notes: $notes, prompt: $prompt, updates: $updates.map((update) => update.toString())}';
   }
 
   // Convert Asset object to JSON
@@ -35,6 +37,7 @@ class Asset {
       'bank': bank,
       'created_by': createdBy,
       'created': created?.toIso8601String(),
+      'prompt': prompt,
       'notes': notes,
       if (includeUpdates) 'updates': updates.map((update) => update.toJson()).toList()
     };
@@ -50,6 +53,7 @@ class Asset {
       createdBy: json['created_by'],
       created: json['created'] != null ? DateTime.parse(json['created']) : null,
       notes: json['notes'],
+      prompt: json['prompt'],
       updates: json['updates'] != null
           ? List<Update>.from(json['updates'].map((updateJson) => Update.fromJson(updateJson)))
           : [],
@@ -69,7 +73,9 @@ class Asset {
   }
 
   int getLastValue(){
-    return updates.isNotEmpty ? updates.last.value : 0;
+    if (updates.isEmpty) return 0;
+    var sorted = updates.toList()..sort((a, b) => (a.updated_at ?? DateTime(1970)).compareTo(b.updated_at ?? DateTime(1970)));
+    return sorted.last.value;
   }
 
   String getLastUpdatedBy(){

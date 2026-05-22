@@ -7,6 +7,7 @@ import 'package:flutter_assets_management/widgets/asset_card.dart';
 import 'package:flutter_assets_management/widgets/totals_card.dart';
 import 'package:flutter_assets_management/services/sync_service.dart';
 import 'package:flutter_assets_management/pages/newassetpage.dart';
+import 'package:flutter_assets_management/pages/aipage.dart';
 import 'package:flutter_assets_management/config/version.dart';
 import 'dart:io';
 
@@ -104,7 +105,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 style: const TextStyle(fontSize: 12),
               ),
             ],
-          ),
+          )
+          
         ),
         body: Column(
           children: [

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_assets_management/database/assets_repository.dart';
 import 'package:flutter_assets_management/database/updates_repository.dart';
 import 'package:flutter_assets_management/models/asset.dart';
 import 'package:flutter_assets_management/models/update.dart';
 import 'package:flutter_assets_management/pages/editpage.dart';
 import 'package:flutter_assets_management/pages/updatespage.dart';
+import 'package:flutter_assets_management/pages/aipage.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'asset_styling.dart';
@@ -57,11 +57,11 @@ class AssetCard extends StatelessWidget {
           ),
 
           SlidableAction(
-            onPressed: (_) => _deleteAsset(context),
-            backgroundColor: Colors.red,
+            onPressed: (_) => _askAI(context),
+            backgroundColor: Colors.green,
             foregroundColor: Colors.white,
-            icon: Icons.delete,
-            label: 'Delete',
+            icon: Icons.psychology,
+            label: 'Ask AI',
           ),
         ],
       ),
@@ -194,52 +194,10 @@ class AssetCard extends StatelessWidget {
     );
   }
 
-  Future<void> _deleteAsset(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Delete Asset'),
-          content: Text('Are you sure you want to delete ${asset.name}?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
-              child: const Text('Cancel'),
-            ),
-
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
+  void _askAI(BuildContext context) {
+   // debugPrint('Asset: ${asset.toString()}');
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => AIPage(asset: asset)),
     );
-
-    if (confirmed == true) {
-      try {
-        await AssetRepository().deleteAsset(asset.id);
-        if (context.mounted) {
-          onUpdate?.call();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${asset.name} deleted')),
-          );
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to delete asset: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
   }
-
 }
