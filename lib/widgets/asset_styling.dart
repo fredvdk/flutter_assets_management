@@ -38,8 +38,11 @@ IconData getValueChangeIcon(Asset asset) {
     return Icons.remove;
   }
 
-  final lastValue = asset.updates.last.value;
-  final previousValue = asset.updates[asset.updates.length - 2].value;
+  final sortedUpdates = List.from(asset.updates)
+      ..sort((a, b) => b.updated_at.compareTo(a.updated_at));
+
+  final lastValue = sortedUpdates.first.value;
+  final previousValue = sortedUpdates[1].value;
 
   if (lastValue > previousValue) {
     return Icons.arrow_upward;
@@ -55,8 +58,11 @@ Color getValueChangeColor(Asset asset) {
     return Colors.grey;
   }
 
-  final lastValue = asset.updates.last.value;
-  final previousValue = asset.updates[asset.updates.length - 2].value;
+  final sortedUpdates = List.from(asset.updates)
+      ..sort((a, b) => b.updated_at.compareTo(a.updated_at));
+
+  final lastValue = sortedUpdates.first.value;
+  final previousValue = sortedUpdates[1].value;
 
   if (lastValue > previousValue) {
     return Colors.green;

@@ -55,6 +55,7 @@ class LocalDatabase {
         created_by TEXT,
         created TEXT,
         notes TEXT,
+        prompt TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
@@ -133,6 +134,20 @@ class LocalDatabase {
       }
     });
   }
+
+  Future<void> updateAssetPrompt(String assetId, String prompt) async {
+    final db = await database;
+    await db.update(
+      'assets',
+      {
+        'prompt': prompt,
+        'updated_at': DateTime.now().toIso8601String(),
+        'updated_by': 'Frederick', // Optionally track who updated the prompt
+      },
+      where: 'id = ?',
+      whereArgs: [assetId],
+    );
+    }
 
   Future<List<Asset>> getAllAssets() async {
     final db = await database;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_assets_management/database/assets_repository.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter_assets_management/models/asset.dart';
+import 'package:flutter_assets_management/providers/assets_provider.dart';
 
 class EditPage extends StatefulWidget {
   final Asset asset;
@@ -67,20 +68,36 @@ class _EditPageState extends State<EditPage> {
 
     if (confirmed == true) {
       try {
-        await AssetRepository().deleteAsset(widget.asset.id);
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('${widget.asset.name} deleted')));
+        setState(() {
+          _isDeleting = true;
+        });
+        final assetsProvider = context.read<AssetsProvider>();
+        final navigator = Navigator.of(context);
+        final scaffoldMessenger = ScaffoldMessenger.of(context);
+        final assetName = widget.asset.name;
+
+        await assetsProvider.deleteAsset(widget.asset.id);
+        if (mounted) {
+          scaffoldMessenger.showSnackBar(SnackBar(content: Text('$assetName deleted')));
+          navigator.pop();
         }
       } catch (e) {
-        if (context.mounted) {
+        if (mounted) {
+          setState(() {
+            _isDeleting = false;
+          });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Failed to delete asset: $e'),
               backgroundColor: Colors.red,
             ),
           );
+        }
+      } finally {
+        if (mounted && _isDeleting) {
+          setState(() {
+            _isDeleting = false;
+          });
         }
       }
     }
@@ -97,6 +114,7 @@ class _EditPageState extends State<EditPage> {
     });
 
     try {
+      final assetsProvider = context.read<AssetsProvider>();
       final updatedAsset = Asset(
         id: widget.asset.id,
         name: _nameController.text,
@@ -108,10 +126,9 @@ class _EditPageState extends State<EditPage> {
         updates: widget.asset.updates,
       );
 
-      await AssetRepository().updateAsset(widget.asset.id, updatedAsset);
+      await assetsProvider.updateAsset(widget.asset.id, updatedAsset);
 
       if (mounted) {
-        widget.onUpdate?.call();
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Asset updated successfully')),

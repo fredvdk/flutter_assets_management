@@ -52,6 +52,34 @@ class AssetRepository {
     }
   }
 
+  Future<void> updateAssetPrompt(String assetId, String prompt) async {
+    if (await _connectivity.isServerAvailable) {
+      try {
+        final response = await _client.patch(
+          Uri.parse('$_baseUrl?id=eq.$assetId'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'prompt': prompt}),
+        );
+        _ensureSuccess(response, acceptedStatuses: [200, 204]);
+        await _localDb.updateAssetPrompt(assetId, prompt);
+      } catch (e) {
+        await _handleOfflinePromptUpdate(assetId, prompt);
+      }
+    } else {
+      await _handleOfflinePromptUpdate(assetId, prompt);
+    }
+  }
+
+  Future<void> _handleOfflinePromptUpdate(String assetId, String prompt) async {
+    await _localDb.updateAssetPrompt(assetId, prompt);
+    await _localDb.addToSyncQueue(
+      id: _uuid.v4(),
+      operation: 'UPDATE_PROMPT',
+      entityType: 'asset',
+      entityId: assetId,
+      data: {'prompt': prompt},
+    );
+  }
 
   Future<Asset> createAsset(Asset asset) async {
     final isServerAvailable = await _connectivity.isServerAvailable;

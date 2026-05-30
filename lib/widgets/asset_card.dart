@@ -7,6 +7,7 @@ import 'package:flutter_assets_management/pages/updatespage.dart';
 import 'package:flutter_assets_management/pages/aipage.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_assets_management/services/user_service.dart';
 import 'asset_styling.dart';
 
 final formatter = NumberFormat.decimalPattern('nl_BE');
@@ -55,7 +56,7 @@ class AssetCard extends StatelessWidget {
             icon: Icons.edit,
             label: 'Edit',
           ),
-
+        if (asset.type != 'Cash')
           SlidableAction(
             onPressed: (_) => _askAI(context),
             backgroundColor: Colors.green,
@@ -120,6 +121,11 @@ class AssetCard extends StatelessWidget {
 
   Future<void> _updateValue(BuildContext context) async {
     final controller = TextEditingController();
+    final userService = UserService();
+    await userService.init();
+    final currentUser = userService.getCurrentUser() ?? 'Unknown';
+
+    if (!context.mounted) return;
 
     final newValue = await showDialog<int>(
       context: context,
@@ -159,21 +165,18 @@ class AssetCard extends StatelessWidget {
 
     if (newValue == null) return;
 
-    // Update the asset value
     await UpdatesRepository().createUpdate(
       Update(
         id: '',
         assetId: asset.id,
         date: DateTime.now(),
         value: newValue,
-        updated_by: 'Frederick',// Replace with actual user info
+        updated_by: currentUser,
         updated_at: DateTime.now()
       ),
     );
 
-    // Notify parent to rebuild
     onUpdate?.call();
-
   }
 
   void _getHistory(BuildContext context) {

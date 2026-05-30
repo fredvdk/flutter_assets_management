@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_assets_management/database/assets_repository.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter_assets_management/models/asset.dart';
 import 'package:flutter_assets_management/models/update.dart';
+import 'package:flutter_assets_management/services/user_service.dart';
+import 'package:flutter_assets_management/providers/assets_provider.dart';
 import 'package:uuid/uuid.dart';
 
 class NewAssetPage extends StatefulWidget {
@@ -47,7 +49,7 @@ class _NewAssetPageState extends State<NewAssetPage> {
       try {
         final assetId = const Uuid().v4();
         final updateId = const Uuid().v4();
-        final repository = AssetRepository();
+        final assetsProvider = context.read<AssetsProvider>();
 
         final initialUpdate = Update(
           id: updateId,
@@ -62,11 +64,12 @@ class _NewAssetPageState extends State<NewAssetPage> {
           type: _selectedType,
           bank: _bankController.text.isEmpty ? null : _bankController.text,
           notes: _notesController.text.isEmpty ? null : _notesController.text,
+          createdBy: UserService().getCurrentUser(),
           created: DateTime.now(),
           updates: [initialUpdate],
         );
 
-        await repository.createAsset(asset);
+        await assetsProvider.createAsset(asset);
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -79,9 +82,11 @@ class _NewAssetPageState extends State<NewAssetPage> {
           SnackBar(content: Text('Error creating asset: $error')),
         );
       } finally {
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
