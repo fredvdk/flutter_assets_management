@@ -10,7 +10,7 @@ class UpdatesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sortedUpdates = List.from(asset.updates)
-        ..sort((a, b) => b.updated_at.compareTo(a.updated_at));
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
     return Scaffold(
       appBar: AppBar(

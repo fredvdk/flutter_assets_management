@@ -41,12 +41,17 @@ class _EditPageState extends State<EditPage> {
   }
 
    Future<void> _deleteAsset(BuildContext context) async {
+    final assetsProvider = context.read<AssetsProvider>();
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final assetName = widget.asset.name;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text('Delete Asset'),
-          content: Text('Are you sure you want to delete ${widget.asset.name}?'),
+          content: Text('Are you sure you want to delete $assetName?'),
           actions: [
             TextButton(
               onPressed: () {
@@ -66,15 +71,11 @@ class _EditPageState extends State<EditPage> {
       },
     );
 
-    if (confirmed == true) {
+    if (confirmed == true && mounted) {
       try {
         setState(() {
           _isDeleting = true;
         });
-        final assetsProvider = context.read<AssetsProvider>();
-        final navigator = Navigator.of(context);
-        final scaffoldMessenger = ScaffoldMessenger.of(context);
-        final assetName = widget.asset.name;
 
         await assetsProvider.deleteAsset(widget.asset.id);
         if (mounted) {
@@ -86,12 +87,14 @@ class _EditPageState extends State<EditPage> {
           setState(() {
             _isDeleting = false;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to delete asset: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          if (mounted) {
+            scaffoldMessenger.showSnackBar(
+              SnackBar(
+                content: Text('Failed to delete asset: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       } finally {
         if (mounted && _isDeleting) {
@@ -146,12 +149,14 @@ class _EditPageState extends State<EditPage> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override

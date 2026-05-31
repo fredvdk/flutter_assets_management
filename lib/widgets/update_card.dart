@@ -39,16 +39,16 @@ class UpdateCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              DateFormat('dd-MMM-yy HH:mm').format(update.updated_at!),
+              DateFormat('dd-MMM-yy HH:mm').format(update.updatedAt!),
               style: const TextStyle(
                 fontSize: 14,
                 color: Colors.grey,
               ),
             ),
             const SizedBox(height: 8),
-            if (update.updated_by != null)
+            if (update.updatedBy != null)
               Text(
-                'By ${update.updated_by}',
+                'By ${update.updatedBy}',
                 style: const TextStyle(
                   fontSize: 12,
                   color: Colors.grey,

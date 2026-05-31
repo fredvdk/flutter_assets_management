@@ -56,8 +56,8 @@ class _NewAssetPageState extends State<NewAssetPage> {
           id: updateId,
           date: DateTime.now(),
           value: int.parse(_valueController.text),
-          updated_at: DateTime.now(),
-          updated_by: userService.getCurrentUser(),
+          updatedAt: DateTime.now(),
+          updatedBy: userService.getCurrentUser(),
           assetId: assetId,
         );
 

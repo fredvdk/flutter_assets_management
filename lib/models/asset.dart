@@ -28,7 +28,6 @@ class Asset {
     return 'Asset{id: $id, name: $name, type: $type, bank: $bank, createdBy: $createdBy, created: $created, notes: $notes, prompt: $prompt, updates: $updates.map((update) => update.toString())}';
   }
 
-  // Convert Asset object to JSON
   Map<String, dynamic> toJson({bool includeUpdates = true}) {
     return {
       'id': id,
@@ -43,7 +42,6 @@ class Asset {
     };
   }
 
-  // Create Asset object from JSON
   factory Asset.fromJson(Map<String, dynamic> json) {
     return Asset(
       id: json['id'] ?? '',
@@ -74,15 +72,15 @@ class Asset {
 
   int getLastValue(){
     if (updates.isEmpty) return 0;
-    var sorted = updates.toList()..sort((a, b) => (a.updated_at ?? DateTime(1970)).compareTo(b.updated_at ?? DateTime(1970)));
+    var sorted = updates.toList()..sort((a, b) => (a.updatedAt ?? DateTime(1970)).compareTo(b.updatedAt ?? DateTime(1970)));
     return sorted.last.value;
   }
 
   String getLastUpdatedBy(){
-    return updates.isNotEmpty ? updates.last.updated_by ?? 'N/A' : 'N/A';
+    return updates.isNotEmpty ? updates.last.updatedBy ?? 'N/A' : 'N/A';
     }
 
   DateTime getLastUpdatedAt(){
-    return updates.isNotEmpty ? updates.last.updated_at ?? DateTime(1970) : DateTime(1970); 
+    return updates.isNotEmpty ? updates.last.updatedAt ?? DateTime(1970) : DateTime(1970);
   }
 }

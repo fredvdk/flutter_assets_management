@@ -39,7 +39,7 @@ IconData getValueChangeIcon(Asset asset) {
   }
 
   final sortedUpdates = List.from(asset.updates)
-      ..sort((a, b) => b.updated_at.compareTo(a.updated_at));
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
   final lastValue = sortedUpdates.first.value;
   final previousValue = sortedUpdates[1].value;
@@ -59,7 +59,7 @@ Color getValueChangeColor(Asset asset) {
   }
 
   final sortedUpdates = List.from(asset.updates)
-      ..sort((a, b) => b.updated_at.compareTo(a.updated_at));
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
   final lastValue = sortedUpdates.first.value;
   final previousValue = sortedUpdates[1].value;

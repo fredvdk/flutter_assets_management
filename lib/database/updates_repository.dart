@@ -21,8 +21,8 @@ class UpdatesRepository {
       date: update.date,
       value: update.value,
       assetId: update.assetId,
-      updated_by: update.updated_by,
-      updated_at: update.updated_at,
+      updatedBy: update.updatedBy,
+      updatedAt: update.updatedAt,
     );
 
     if (isOnline) {

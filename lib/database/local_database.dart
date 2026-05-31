@@ -163,8 +163,8 @@ class LocalDatabase {
         date: DateTime.parse(map['date'] as String),
         value: map['value'] as int,
         assetId: assetId,
-        updated_by: map['updated_by'] as String?,
-        updated_at: map['updated_at'] != null
+        updatedBy: map['updated_by'] as String?,
+        updatedAt: map['updated_at'] != null
             ? DateTime.parse(map['updated_at'] as String)
             : null,
       );
@@ -219,8 +219,8 @@ class LocalDatabase {
         'asset_id': update.assetId,
         'date': update.date.toIso8601String(),
         'value': update.value,
-        'updated_by': update.updated_by,
-        'updated_at': update.updated_at?.toIso8601String(),
+        'updated_by': update.updatedBy,
+        'updated_at': update.updatedAt?.toIso8601String(),
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -238,8 +238,8 @@ class LocalDatabase {
           'asset_id': update.assetId,
           'date': update.date.toIso8601String(),
           'value': update.value,
-          'updated_by': update.updated_by,
-          'updated_at': update.updated_at?.toIso8601String(),
+          'updated_by': update.updatedBy,
+          'updated_at': update.updatedAt?.toIso8601String(),
         },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );

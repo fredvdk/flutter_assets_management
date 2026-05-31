@@ -171,8 +171,8 @@ class AssetCard extends StatelessWidget {
         assetId: asset.id,
         date: DateTime.now(),
         value: newValue,
-        updated_by: currentUser,
-        updated_at: DateTime.now()
+        updatedBy: currentUser,
+        updatedAt: DateTime.now()
       ),
     );
 
