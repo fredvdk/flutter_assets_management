@@ -50,11 +50,14 @@ class _NewAssetPageState extends State<NewAssetPage> {
         final assetId = const Uuid().v4();
         final updateId = const Uuid().v4();
         final assetsProvider = context.read<AssetsProvider>();
+        final userService = context.read<UserService>();
 
         final initialUpdate = Update(
           id: updateId,
           date: DateTime.now(),
           value: int.parse(_valueController.text),
+          updated_at: DateTime.now(),
+          updated_by: userService.getCurrentUser(),
           assetId: assetId,
         );
 
@@ -64,7 +67,7 @@ class _NewAssetPageState extends State<NewAssetPage> {
           type: _selectedType,
           bank: _bankController.text.isEmpty ? null : _bankController.text,
           notes: _notesController.text.isEmpty ? null : _notesController.text,
-          createdBy: UserService().getCurrentUser(),
+          createdBy: userService.getCurrentUser(),
           created: DateTime.now(),
           updates: [initialUpdate],
         );
@@ -78,9 +81,9 @@ class _NewAssetPageState extends State<NewAssetPage> {
         Navigator.of(context).pop(true);
       } catch (error) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error creating asset: $error')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error creating asset: $error')));
       } finally {
         if (mounted) {
           setState(() {
@@ -128,10 +131,10 @@ class _NewAssetPageState extends State<NewAssetPage> {
                     border: OutlineInputBorder(),
                   ),
                   items: _assetTypes
-                      .map((type) => DropdownMenuItem(
-                            value: type,
-                            child: Text(type),
-                          ))
+                      .map(
+                        (type) =>
+                            DropdownMenuItem(value: type, child: Text(type)),
+                      )
                       .toList(),
                   onChanged: (value) {
                     if (value != null) {

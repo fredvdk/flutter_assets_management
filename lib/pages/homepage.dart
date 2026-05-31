@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_assets_management/widgets/asset_card.dart';
 import 'package:flutter_assets_management/widgets/totals_card.dart';
-import 'package:flutter_assets_management/services/user_service.dart';
 import 'package:flutter_assets_management/pages/newassetpage.dart';
 import 'package:flutter_assets_management/config/version.dart';
-import 'package:flutter_assets_management/providers/assets_provider.dart';
+import 'package:flutter_assets_management/controllers/home_controller.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -17,16 +16,12 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String _currentUser = '';
-
   @override
   void initState() {
     super.initState();
-    final userService = context.read<UserService>();
-    _currentUser = userService.getCurrentUser() ?? 'Unknown';
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<AssetsProvider>().fetchAssets();
+        context.read<HomeController>().initialize();
       }
     });
   }
@@ -52,60 +47,61 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
           actions: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Center(
-                child: Text(
-                  _currentUser,
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ),
-            ),
-            PopupMenuButton(
-              onSelected: (value) async {
-                if (value == 'logout') {
-                  final userService = context.read<UserService>();
-                  await userService.logout();
-                  if (mounted) {
-                    Navigator.of(context).pushNamedAndRemoveUntil(
-                      '/',
-                      (route) => false,
-                    );
-                  }
-                }
+            Consumer<HomeController>(
+              builder: (context, controller, _) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Center(
+                    child: Text(
+                      controller.currentUser,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ),
+                );
               },
-              itemBuilder: (menuContext) => [
-                const PopupMenuItem(
-                  value: 'logout',
-                  child: Text('Logout'),
-                ),
-              ],
+            ),
+            Consumer<HomeController>(
+              builder: (context, controller, _) {
+                return PopupMenuButton(
+                  onSelected: (value) async {
+                    if (value == 'logout') {
+                      await controller.logout();
+                      if (mounted) {
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          '/',
+                          (route) => false,
+                        );
+                      }
+                    }
+                  },
+                  itemBuilder: (menuContext) => [
+                    const PopupMenuItem(
+                      value: 'logout',
+                      child: Text('Logout'),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),
-        body: Consumer<AssetsProvider>(
-          builder: (context, assetsProvider, _) {
-            if (assetsProvider.error != null) {
+        body: Consumer<HomeController>(
+          builder: (context, controller, _) {
+            if (controller.error != null) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(assetsProvider.error!)),
+                SnackBar(content: Text(controller.error!)),
               );
-              assetsProvider.clearError();
-            }
-
-            final groupedAssets = <String, List>{};
-            for (final asset in assetsProvider.assets) {
-              final type = asset.type ?? 'Other';
-              groupedAssets.putIfAbsent(type, () => []).add(asset);
+              controller.clearError();
             }
 
             return Column(
               children: [
-                TotalsCard(assets: assetsProvider.assets),
+                TotalsCard(assets: controller.assets),
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: groupedAssets.entries.map((entry) {
+                      children: controller.groupedAssets.entries.map((entry) {
                         final type = entry.key;
                         final assets = entry.value;
                         return Column(
@@ -124,7 +120,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               (asset) => AssetCard(
                                 asset: asset,
                                 onUpdate: () {
-                                  assetsProvider.fetchAssets();
+                                  controller.refreshAssets();
                                 },
                               ),
                             ),
@@ -138,18 +134,21 @@ class _MyHomePageState extends State<MyHomePage> {
             );
           },
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () async {
-            final assetsProvider = context.read<AssetsProvider>();
-            final result = await Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const NewAssetPage()),
+        floatingActionButton: Consumer<HomeController>(
+          builder: (context, controller, _) {
+            return FloatingActionButton(
+              onPressed: () async {
+                final result = await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const NewAssetPage()),
+                );
+                if (result == true && mounted) {
+                  await controller.refreshAssets();
+                }
+              },
+              tooltip: 'Add Asset',
+              child: const Icon(Icons.add),
             );
-            if (result == true && mounted) {
-              assetsProvider.fetchAssets();
-            }
           },
-          tooltip: 'Add Asset',
-          child: const Icon(Icons.add),
         ),
       ),
     );

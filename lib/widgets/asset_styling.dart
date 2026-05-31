@@ -10,7 +10,7 @@ Color? getAssetCardColor(Asset asset) {
       return Colors.blue[50];
 
     case 'vastgoed':
-      return Colors.brown[50];
+      return Colors.red[50];
 
     default:
       return Colors.grey[50];
