@@ -13,8 +13,8 @@ void main() {
             assetId: 'asset1',
             value: 100,
             date: DateTime.parse('2024-01-01'),
-            updated_by: 'John',
-            updated_at: now,
+            updatedBy: 'John',
+            updatedAt: now,
           )
         ];
 
@@ -84,8 +84,8 @@ void main() {
             assetId: 'asset1',
             value: 100,
             date: DateTime.parse('2024-01-01'),
-            updated_by: 'John',
-            updated_at: now,
+            updatedBy: 'John',
+            updatedAt: now,
           )
         ];
 
@@ -211,16 +211,16 @@ void main() {
             assetId: 'asset1',
             value: 100,
             date: DateTime.parse('2024-01-01'),
-            updated_by: 'John',
-            updated_at: now,
+            updatedBy: 'John',
+            updatedAt: now,
           ),
           Update(
             id: 'update2',
             assetId: 'asset1',
             value: 150,
             date: DateTime.parse('2024-01-02'),
-            updated_by: 'Jane',
-            updated_at: now.add(const Duration(days: 1)),
+            updatedBy: 'Jane',
+            updatedAt: now.add(const Duration(days: 1)),
           )
         ];
 

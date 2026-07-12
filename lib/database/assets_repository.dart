@@ -25,7 +25,7 @@ class AssetRepository {
       try {
         final response = await _client.get(
           Uri.parse(
-            '$_baseUrl?select=id,name,updates(id,asset_id,date,value,updated_by,updated_at),type,bank,created_by,created,notes,prompt',
+            '$_baseUrl?select=id,name,updates(id,asset_id,date,value,updated_by,updated_at),type,bank,created_by,created_at,notes,prompt',
           ),
         );
         _ensureSuccess(response);
