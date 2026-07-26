@@ -1,20 +1,25 @@
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:uuid/uuid.dart';
+
+import '../data/http_update_remote_data_source.dart';
+import '../data/update_local_data_source.dart';
 import '../models/update.dart';
-import '../config/env.dart';
-import 'local_database.dart';
 import '../services/connectivity_service.dart';
 
 class UpdatesRepository {
-  late final String baseUrl = '${Env.baseUrl}/updates';
-  final LocalDatabase _localDb = LocalDatabase();
-  final ConnectivityService _connectivity = ConnectivityService();
+  final UpdateLocalDataSource _localDataSource;
+  final UpdateRemoteDataSource _remoteDataSource;
+  final ConnectivityService _connectivity;
   final _uuid = const Uuid();
 
-  // CREATE
+  UpdatesRepository({
+    UpdateLocalDataSource? localDataSource,
+    UpdateRemoteDataSource? remoteDataSource,
+    ConnectivityService? connectivityService,
+  })  : _localDataSource = localDataSource ?? SqliteUpdateLocalDataSource(),
+        _remoteDataSource = remoteDataSource ?? HttpUpdateRemoteDataSource(),
+        _connectivity = connectivityService ?? ConnectivityService();
+
   Future<Update> createUpdate(Update update) async {
-    final isOnline = await _connectivity.isServerAvailable;
     final updateId = update.id.isEmpty ? _uuid.v4() : update.id;
     final newUpdate = Update(
       id: updateId,
@@ -25,91 +30,58 @@ class UpdatesRepository {
       updatedAt: update.updatedAt,
     );
 
-    if (isOnline) {
+    if (await _connectivity.isOnline) {
       try {
-        final response = await http.post(
-          Uri.parse(baseUrl),
-          headers: {
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-            },
-          body: jsonEncode(newUpdate.toJson()),
-        );
-
-        if (response.statusCode == 201 || response.statusCode == 200) {
-          final decoded = jsonDecode(response.body);
-          final data = decoded is List ? decoded.first : decoded;
-          final createdUpdate = Update.fromJson(data);
-          await _localDb.insertUpdate(createdUpdate);
-          return createdUpdate;
-        } else {
-          throw Exception('Failed to create update: ${response.statusCode}');
-        }
-      } catch (e) {
-        await _localDb.insertUpdate(newUpdate);
-        await _localDb.addToSyncQueue(
-          id: _uuid.v4(),
-          operation: 'CREATE',
-          entityType: 'update',
-          entityId: updateId,
-          data: newUpdate.toJson(),
-        );
-        return newUpdate;
+        final createdUpdate = await _remoteDataSource.createUpdate(newUpdate);
+        await _localDataSource.saveUpdate(createdUpdate);
+        return createdUpdate;
+      } catch (_) {
+        return _handleOfflineCreate(newUpdate);
       }
-    } else {
-      await _localDb.insertUpdate(newUpdate);
-      await _localDb.addToSyncQueue(
-        id: _uuid.v4(),
-        operation: 'CREATE',
-        entityType: 'update',
-        entityId: updateId,
-        data: newUpdate.toJson(),
-      );
-      return newUpdate;
     }
+
+    return _handleOfflineCreate(newUpdate);
   }
 
-  // READ (Get all updates for an asset)
   Future<List<Update>> getUpdatesForAsset(String assetId) async {
-    // Local database is the primary source for specific asset updates to ensure offline support
-    return await _localDb.getUpdatesByAssetId(assetId);
+    return _localDataSource.getUpdatesByAssetId(assetId);
   }
 
-  // DELETE
   Future<void> deleteUpdate(String id) async {
-    final isOnline = await _connectivity.isServerAvailable;
-
-    if (isOnline) {
+    if (await _connectivity.isOnline) {
       try {
-        final response = await http.delete(
-          Uri.parse('$baseUrl?id=eq.$id'),
-          headers: {'Prefer': 'return=minimal'},
-        );
-
-        if (response.statusCode == 200 || response.statusCode == 204) {
-          await _localDb.deleteUpdate(id);
-        } else {
-          throw Exception('Failed to delete update: ${response.statusCode}');
-        }
-      } catch (e) {
-        await _localDb.deleteUpdate(id);
-        await _localDb.addToSyncQueue(
-          id: _uuid.v4(),
-          operation: 'DELETE',
-          entityType: 'update',
-          entityId: id,
-          data: {},
-        );
+        await _remoteDataSource.deleteUpdate(id);
+        await _localDataSource.deleteUpdate(id);
+      } catch (_) {
+        await _handleOfflineDelete(id);
       }
     } else {
-      await _localDb.deleteUpdate(id);
-      await _localDb.addToSyncQueue(
-        id: _uuid.v4(),
-        operation: 'DELETE',
-        entityType: 'update',
-        entityId: id,
-        data: {},
-      );
+      await _handleOfflineDelete(id);
     }
   }
+
+  Future<Update> _handleOfflineCreate(Update update) async {
+    await _localDataSource.saveUpdate(update);
+    await _localDataSource.addToSyncQueue(
+      id: _uuid.v4(),
+      operation: 'CREATE',
+      entityType: 'update',
+      entityId: update.id,
+      data: update.toJson(),
+    );
+    return update;
+  }
+
+  Future<void> _handleOfflineDelete(String id) async {
+    await _localDataSource.deleteUpdate(id);
+    await _localDataSource.addToSyncQueue(
+      id: _uuid.v4(),
+      operation: 'DELETE',
+      entityType: 'update',
+      entityId: id,
+      data: {},
+    );
+  }
+
+  void dispose() => _remoteDataSource.dispose();
 }

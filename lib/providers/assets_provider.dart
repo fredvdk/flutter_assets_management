@@ -3,7 +3,10 @@ import 'package:flutter_assets_management/models/asset.dart';
 import 'package:flutter_assets_management/database/assets_repository.dart';
 
 class AssetsProvider extends ChangeNotifier {
-  final AssetRepository _repository = AssetRepository();
+  final AssetRepository _repository;
+
+  AssetsProvider({AssetRepository? repository})
+      : _repository = repository ?? AssetRepository();
 
   List<Asset> _assets = [];
   String? _error;

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_assets_management/controllers/home_controller.dart';
+import 'package:flutter_assets_management/pages/newassetpage.dart';
+import 'package:flutter_assets_management/providers/sync_status_provider.dart';
+import 'package:flutter_assets_management/services/connectivity_service.dart';
 import 'package:flutter_assets_management/widgets/asset_card.dart';
 import 'package:flutter_assets_management/widgets/totals_card.dart';
-import 'package:flutter_assets_management/pages/newassetpage.dart';
 import 'package:flutter_assets_management/config/version.dart';
-import 'package:flutter_assets_management/controllers/home_controller.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -47,6 +49,25 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
           actions: [
+            Consumer<SyncStatusProvider>(
+              builder: (context, syncStatus, _) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Chip(
+                    visualDensity: VisualDensity.compact,
+                    label: Text(syncStatus.statusLabel),
+                    avatar: Icon(
+                      syncStatus.connectionStatus == ConnectionStatus.offline
+                          ? Icons.wifi_off
+                          : syncStatus.isSyncing
+                              ? Icons.sync
+                              : Icons.cloud_done,
+                      size: 16,
+                    ),
+                  ),
+                );
+              },
+            ),
             Consumer<HomeController>(
               builder: (context, controller, _) {
                 return Padding(
@@ -66,12 +87,6 @@ class _MyHomePageState extends State<MyHomePage> {
                   onSelected: (value) async {
                     if (value == 'logout') {
                       await controller.logout();
-                      if (mounted) {
-                        Navigator.of(context).pushNamedAndRemoveUntil(
-                          '/',
-                          (route) => false,
-                        );
-                      }
                     }
                   },
                   itemBuilder: (menuContext) => [

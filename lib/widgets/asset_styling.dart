@@ -4,16 +4,16 @@ import 'package:flutter_assets_management/models/asset.dart';
 Color? getAssetCardColor(Asset asset) {
   switch (asset.type?.toLowerCase()) {
     case 'beleggingen':
-      return Colors.green[50];
+      return Colors.green[100];
 
     case 'cash':
-      return Colors.blue[50];
+      return Colors.blue[100];
 
     case 'vastgoed':
-      return Colors.red[50];
+      return Colors.orange[100];
 
     default:
-      return Colors.grey[50];
+      return Colors.grey[100];
   }
 }
 

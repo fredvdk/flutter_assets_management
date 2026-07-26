@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_assets_management/services/user_service.dart';
+import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
-  final VoidCallback? onLoginSuccess;
-
-  const LoginPage({super.key, this.onLoginSuccess});
+  const LoginPage({super.key});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -12,7 +11,6 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _nameController = TextEditingController();
-  final UserService _userService = UserService();
   bool _isLoading = false;
 
   @override
@@ -34,11 +32,9 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      await _userService.init();
-      await _userService.setCurrentUser(_nameController.text.trim());
-      if (mounted) {
-        widget.onLoginSuccess?.call();
-      }
+      await context.read<UserService>().setCurrentUser(
+            _nameController.text.trim(),
+          );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,47 +1,78 @@
+import 'dart:async';
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../config/env.dart';
 import '../database/local_database.dart';
 import '../services/connectivity_service.dart';
-import '../config/env.dart';
 
-class SyncService {
-  final LocalDatabase _localDb = LocalDatabase();
-  final ConnectivityService _connectivity = ConnectivityService();
+class SyncService extends ChangeNotifier {
+  final LocalDatabase _localDb;
+  final ConnectivityService _connectivity;
   late final String _assetsBaseUrl = '${Env.baseUrl}/assets';
   late final String _updatesBaseUrl = '${Env.baseUrl}/updates';
   final http.Client _client;
   bool _isSyncing = false;
+  ConnectionStatus _connectionStatus = ConnectionStatus.offline;
+  int _pendingOperationsCount = 0;
+  DateTime? _lastSyncCompletedAt;
 
-  SyncService({http.Client? client}) : _client = client ?? http.Client();
+  SyncService({
+    LocalDatabase? localDatabase,
+    ConnectivityService? connectivityService,
+    http.Client? client,
+  })  : _localDb = localDatabase ?? LocalDatabase(),
+        _connectivity = connectivityService ?? ConnectivityService(),
+        _client = client ?? http.Client();
+
+  bool get isSyncing => _isSyncing;
+  ConnectionStatus get connectionStatus => _connectionStatus;
+  int get pendingOperationsCount => _pendingOperationsCount;
+  DateTime? get lastSyncCompletedAt => _lastSyncCompletedAt;
 
   void startAutoSync() {
-    _connectivity.connectionStatusStream.listen((isConnected) {
-      if (isConnected) {
-        syncPendingOperations();
+    _connectivity.connectionStatusStream.listen((status) {
+      _connectionStatus = status;
+      if (status == ConnectionStatus.online) {
+        unawaited(syncPendingOperations());
       }
+      notifyListeners();
     });
+
+    unawaited(refreshPendingOperationsCount());
+  }
+
+  Future<void> refreshPendingOperationsCount() async {
+    _pendingOperationsCount = (await _localDb.getPendingSyncQueue()).length;
+    notifyListeners();
   }
 
   Future<void> syncPendingOperations() async {
     if (_isSyncing) return;
     _isSyncing = true;
+    notifyListeners();
 
     try {
       final pendingItems = await _localDb.getPendingSyncQueue();
-      print('Syncing ${pendingItems.length} pending operations...');
+      _pendingOperationsCount = pendingItems.length;
+      notifyListeners();
+      debugPrint('Syncing ${pendingItems.length} pending operations...');
 
-      for (var item in pendingItems) {
+      for (final item in pendingItems) {
         final success = await _syncItem(item);
         if (success) {
           await _localDb.removeSyncQueueItem(item['id'] as String);
         } else {
-          // If a sync fails, we stop to maintain order (especially for CREATE then UPDATE)
-          print('Sync failed for item ${item['id']}, stopping batch');
+          debugPrint('Sync failed for item ${item['id']}, stopping batch');
           break;
         }
       }
     } finally {
       _isSyncing = false;
+      _lastSyncCompletedAt = DateTime.now();
+      await refreshPendingOperationsCount();
     }
   }
 
@@ -60,7 +91,7 @@ class SyncService {
 
       return false;
     } catch (e) {
-      print('Error syncing item: $e');
+      debugPrint('Error syncing item: $e');
       return false;
     }
   }
@@ -139,5 +170,9 @@ class SyncService {
     }
   }
 
-  void dispose() => _client.close();
+  @override
+  void dispose() {
+    _client.close();
+    super.dispose();
+  }
 }

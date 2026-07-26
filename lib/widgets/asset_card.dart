@@ -8,6 +8,7 @@ import 'package:flutter_assets_management/pages/aipage.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_assets_management/services/user_service.dart';
+import 'package:provider/provider.dart';
 import 'asset_styling.dart';
 
 final formatter = NumberFormat.decimalPattern('nl_BE');
@@ -164,15 +165,17 @@ class AssetCard extends StatelessWidget {
     );
 
     if (newValue == null) return;
+    if (!context.mounted) return;
 
-    await UpdatesRepository().createUpdate(
+    final updatesRepository = context.read<UpdatesRepository>();
+    await updatesRepository.createUpdate(
       Update(
         id: '',
         assetId: asset.id,
         date: DateTime.now(),
         value: newValue,
         updatedBy: currentUser,
-        updatedAt: DateTime.now()
+        updatedAt: DateTime.now(),
       ),
     );
 
