@@ -3,6 +3,8 @@
     "allow": [
       "Bash(flutter pub *)",
       "Bash(python3)",
+      "Bash(rm lib/controllers/home_controller.dart)",
+      "Bash(rmdir lib/controllers)",
       "Bash(flutter analyze *)"
     ]
   }

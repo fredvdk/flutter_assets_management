@@ -23,18 +23,48 @@ class AssetRepository {
         _connectivity = connectivityService ?? ConnectivityService(),
         _updatesRepository = updatesRepository ?? UpdatesRepository();
 
+  Future<List<Asset>> getCachedAssets() async {
+    return _localDb.getAllAssets();
+  }
+
   Future<List<Asset>> fetchAssets() async {
-    return _runWithFallback(
-      remoteAction: () async {
-        final assets = await _remoteDataSource.fetchAssets();
-        await _localDataSource.saveAssets(assets);
-        await _localDataSource.insertUpdates(
-          assets.expand((asset) => asset.updates).toList(),
+    final localAssets = await _localDb.getAllAssets();
+    if (localAssets.isNotEmpty) {
+      print('Loaded ${localAssets.length} assets from local cache');
+    } else {
+      print('No local assets cached yet');
+    }
+
+    if (await _connectivity.isServerAvailable) {
+      print('Server available, fetching assets from server');
+      try {
+        final response = await _client.get(
+          Uri.parse(
+            '$_baseUrl?select=id,name,updates(id,asset_id,date,value,updated_by,updated_at),type,bank,created_by,created_at,notes,prompt',
+          ),
         );
+        _ensureSuccess(response);
+        final decoded = jsonDecode(response.body);
+        final assets = (decoded as List)
+            .map((item) => Asset.fromJson(item))
+            .toList();
+
+        // Cache the fetched assets locally
+        await _localDb.insertAssets(assets);
+
+        // Flatten all updates to insert them in a single batch
+        final allUpdates = assets.expand((asset) => asset.updates).toList();
+        await _localDb.insertUpdates(allUpdates);
+
         return assets;
-      },
-      localAction: () => _localDataSource.getAllAssets(),
-    );
+      } catch (e) {
+        print('Error fetching from server, falling back to local: $e');
+        return localAssets;
+      }
+    } else {
+      print('Server not available, loading assets from local cache');
+      return localAssets;
+    }
   }
 
   Future<void> updateAssetPrompt(String assetId, String prompt) async {
@@ -61,10 +91,21 @@ class AssetRepository {
           )
         : asset;
 
-    return _runWithFallback<Asset>(
-      remoteAction: () async {
-        final createdAsset = await _remoteDataSource.createAsset(assetWithId);
-        await _localDataSource.saveAsset(createdAsset);
+    if (isServerAvailable) {
+      try {
+        final response = await _client.post(
+          Uri.parse(_baseUrl),
+          headers: {
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation',
+          },
+          body: jsonEncode(assetWithId.toJson(includeUpdates: false)),
+        );
+        _ensureSuccess(response, acceptedStatuses: [200, 201]);
+
+        final List<dynamic> json = jsonDecode(response.body);
+        final createdAsset = Asset.fromJson(json.first as Map<String, dynamic>);
+        await _localDb.insertAsset(createdAsset);
 
         if (assetWithId.updates.isNotEmpty) {
           for (final update in assetWithId.updates) {
@@ -132,7 +173,9 @@ class AssetRepository {
       operation: 'CREATE',
       entityType: 'asset',
       entityId: asset.id,
-      data: asset.toJson(includeUpdates: false),
+      data: asset.toJson(
+        includeUpdates: false,
+      ), // Updates are handled by their own repo sync
     );
     return asset;
   }

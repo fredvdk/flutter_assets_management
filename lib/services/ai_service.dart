@@ -12,7 +12,8 @@ class AIService {
       throw Exception('OPENAI_API_KEY not configured in .env file');
     }
     return key;
-  }
+  } 
+ 
 
   Future<String> askAI(String prompt, {bool useWebSearch = true}) async {
     debugPrint('AIService: Starting request');

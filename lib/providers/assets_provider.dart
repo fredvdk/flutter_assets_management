@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_assets_management/models/asset.dart';
 import 'package:flutter_assets_management/database/assets_repository.dart';
+import 'package:flutter_assets_management/services/user_service.dart';
 
 class AssetsProvider extends ChangeNotifier {
-  final AssetRepository _repository;
+  final AssetRepository _repository = AssetRepository();
+  final UserService userService;
 
-  AssetsProvider({AssetRepository? repository})
-      : _repository = repository ?? AssetRepository();
+  AssetsProvider({required this.userService});
 
   List<Asset> _assets = [];
   String? _error;
@@ -16,17 +17,41 @@ class AssetsProvider extends ChangeNotifier {
   String? get error => _error;
   bool get isLoading => _isLoading;
 
+  String get currentUser => userService.getCurrentUser() ?? 'Unknown';
+
+  Map<String, List<Asset>> get groupedAssets {
+    final grouped = <String, List<Asset>>{};
+    for (final asset in _assets) {
+      final type = asset.type ?? 'Other';
+      grouped.putIfAbsent(type, () => []).add(asset);
+    }
+    return grouped;
+  }
+
+  Future<void> initialize() => fetchAssets();
+
+  Future<void> refreshAssets() => fetchAssets();
+
+  Future<void> logout() => userService.logout();
+
   Future<void> fetchAssets() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _assets = await _repository.fetchAssets();
+      final cachedAssets = await _repository.getCachedAssets();
+      _assets = cachedAssets;
+      notifyListeners();
+
+      final freshAssets = await _repository.fetchAssets();
+      _assets = freshAssets;
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      _error = 'Failed to fetch assets: $e';
+      if (_assets.isEmpty) {
+        _error = 'Failed to fetch assets: $e';
+      }
       _isLoading = false;
       notifyListeners();
     }

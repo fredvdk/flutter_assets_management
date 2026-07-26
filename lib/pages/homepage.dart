@@ -7,6 +7,7 @@ import 'package:flutter_assets_management/services/connectivity_service.dart';
 import 'package:flutter_assets_management/widgets/asset_card.dart';
 import 'package:flutter_assets_management/widgets/totals_card.dart';
 import 'package:flutter_assets_management/config/version.dart';
+import 'package:flutter_assets_management/providers/assets_provider.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -23,7 +24,7 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<HomeController>().initialize();
+        context.read<AssetsProvider>().initialize();
       }
     });
   }
@@ -49,26 +50,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
           actions: [
-            Consumer<SyncStatusProvider>(
-              builder: (context, syncStatus, _) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Chip(
-                    visualDensity: VisualDensity.compact,
-                    label: Text(syncStatus.statusLabel),
-                    avatar: Icon(
-                      syncStatus.connectionStatus == ConnectionStatus.offline
-                          ? Icons.wifi_off
-                          : syncStatus.isSyncing
-                              ? Icons.sync
-                              : Icons.cloud_done,
-                      size: 16,
-                    ),
-                  ),
-                );
-              },
-            ),
-            Consumer<HomeController>(
+            Consumer<AssetsProvider>(
               builder: (context, controller, _) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -81,7 +63,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 );
               },
             ),
-            Consumer<HomeController>(
+            Consumer<AssetsProvider>(
               builder: (context, controller, _) {
                 return PopupMenuButton(
                   onSelected: (value) async {
@@ -100,7 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ],
         ),
-        body: Consumer<HomeController>(
+        body: Consumer<AssetsProvider>(
           builder: (context, controller, _) {
             if (controller.error != null) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -149,7 +131,7 @@ class _MyHomePageState extends State<MyHomePage> {
             );
           },
         ),
-        floatingActionButton: Consumer<HomeController>(
+        floatingActionButton: Consumer<AssetsProvider>(
           builder: (context, controller, _) {
             return FloatingActionButton(
               onPressed: () async {
