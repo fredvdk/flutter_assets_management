@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:flutter_assets_management/services/sync_service.dart';
 import 'package:flutter_assets_management/services/user_service.dart';
 import 'package:flutter_assets_management/providers/assets_provider.dart';
-import 'package:flutter_assets_management/controllers/home_controller.dart';
 
 
 class MyApp extends StatelessWidget {
@@ -24,12 +23,8 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<UserService>.value(value: userService),
-        ChangeNotifierProvider(create: (_) => AssetsProvider()),
         ChangeNotifierProvider(
-          create: (context) => HomeController(
-            userService: context.read<UserService>(),
-            assetsProvider: context.read<AssetsProvider>(),
-          ),
+          create: (_) => AssetsProvider(userService: userService),
         ),
       ],
       child: MaterialApp(

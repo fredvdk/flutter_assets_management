@@ -19,7 +19,18 @@ class AssetRepository {
 
   AssetRepository({http.Client? client}) : _client = client ?? http.Client();
 
+  Future<List<Asset>> getCachedAssets() async {
+    return _localDb.getAllAssets();
+  }
+
   Future<List<Asset>> fetchAssets() async {
+    final localAssets = await _localDb.getAllAssets();
+    if (localAssets.isNotEmpty) {
+      print('Loaded ${localAssets.length} assets from local cache');
+    } else {
+      print('No local assets cached yet');
+    }
+
     if (await _connectivity.isServerAvailable) {
       print('Server available, fetching assets from server');
       try {
@@ -36,19 +47,19 @@ class AssetRepository {
 
         // Cache the fetched assets locally
         await _localDb.insertAssets(assets);
-        
+
         // Flatten all updates to insert them in a single batch
         final allUpdates = assets.expand((asset) => asset.updates).toList();
         await _localDb.insertUpdates(allUpdates);
-        
+
         return assets;
       } catch (e) {
         print('Error fetching from server, falling back to local: $e');
-        return _localDb.getAllAssets();
+        return localAssets;
       }
     } else {
       print('Server not available, loading assets from local cache');
-      return _localDb.getAllAssets();
+      return localAssets;
     }
   }
 
@@ -102,12 +113,12 @@ class AssetRepository {
           Uri.parse(_baseUrl),
           headers: {
             'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-            },
+            'Prefer': 'return=representation',
+          },
           body: jsonEncode(assetWithId.toJson(includeUpdates: false)),
         );
         _ensureSuccess(response, acceptedStatuses: [200, 201]);
-        
+
         final List<dynamic> json = jsonDecode(response.body);
         final createdAsset = Asset.fromJson(json.first as Map<String, dynamic>);
         await _localDb.insertAsset(createdAsset);
@@ -135,7 +146,9 @@ class AssetRepository {
       operation: 'CREATE',
       entityType: 'asset',
       entityId: asset.id,
-      data: asset.toJson(includeUpdates: false), // Updates are handled by their own repo sync
+      data: asset.toJson(
+        includeUpdates: false,
+      ), // Updates are handled by their own repo sync
     );
     return asset;
   }
