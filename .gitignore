@@ -45,3 +45,77 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# --- Additional recommended ignores ---
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# Editor directories and files
+.vscode/
+*.code-workspace
+*.sublime-workspace
+*.sublime-project
+
+# Flutter / Dart
+.dart_tool/
+/.packages
+/.flutter-plugins
+/.flutter-plugins-dependencies
+pubspec.lock
+
+# Local configuration files
+local.properties
+*.iml
+
+# Android specific
+/.gradle/
+/android/**/build/
+/android/**/captures/
+/android/app/*.keystore
+
+# iOS specific
+/ios/Pods/
+/ios/Runner.xcworkspace/
+**/ios/Flutter/Generated.xcconfig
+
+# Windows specific
+/windows/Flutter/ephemeral/
+/windows/runner/**/Release/
+/windows/runner/**/Debug/
+
+# macOS specific
+/macos/Flutter/ephemeral/
+/macos/Runner/**/Release/
+/macos/Runner/**/Debug/
+
+# Build outputs and generated files
+/build/
+/flutter_assets/
+/gen/
+
+# Logs, test outputs
+/logs/
+*.log
+.flutter-plugins
+
+# Sensitive files
+*.keystore
+*.p12
+*.jks
+
+# Coverage
+/coverage/
+
+# Ignore generated plugin registrant files
+**/GeneratedPluginRegistrant.*
