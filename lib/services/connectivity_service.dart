@@ -2,7 +2,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:http/http.dart' as http;
 import '../config/env.dart';
 
-enum ConnectionStatus { online, offline }
+enum ConnectionStatus { serverAvailable, noServer, offline }
 
 class ConnectivityService {
   static final ConnectivityService _instance = ConnectivityService._internal();
@@ -22,27 +22,30 @@ class ConnectivityService {
         _client = client ?? http.Client();
 
   Stream<ConnectionStatus> get connectionStatusStream {
-    return _connectivity.onConnectivityChanged.map((result) {
-      return result.contains(ConnectivityResult.none)
-          ? ConnectionStatus.offline
-          : ConnectionStatus.online;
+    return _connectivity.onConnectivityChanged.asyncMap((result) async {
+      if (result.contains(ConnectivityResult.none)) {
+        return ConnectionStatus.offline;
+      }
+      return (await isServerAvailable) ? ConnectionStatus.serverAvailable : ConnectionStatus.noServer;
     });
   }
 
   Stream<bool> get isOnlineStream =>
-      connectionStatusStream.map((status) => status == ConnectionStatus.online);
+      connectionStatusStream.map((status) => status == ConnectionStatus.serverAvailable);
 
   Future<ConnectionStatus> get currentStatus async {
     final result = await _connectivity.checkConnectivity();
-    return result.contains(ConnectivityResult.none)
-        ? ConnectionStatus.offline
-        : ConnectionStatus.online;
+    if (result.contains(ConnectivityResult.none)) {
+      return ConnectionStatus.offline;
+    }
+    return (await isServerAvailable) ? ConnectionStatus.serverAvailable : ConnectionStatus.noServer;
   }
 
-  Future<bool> get isOnline async => (await currentStatus) == ConnectionStatus.online;
+  Future<bool> get isOnline async => (await currentStatus) == ConnectionStatus.serverAvailable;
 
   Future<bool> get isServerAvailable async {
-    if (!await isOnline) {
+    final result = await _connectivity.checkConnectivity();
+    if (result.contains(ConnectivityResult.none)) {
       return false;
     }
 

@@ -35,7 +35,7 @@ class SyncService extends ChangeNotifier {
   void startAutoSync() {
     _connectivity.connectionStatusStream.listen((status) {
       _connectionStatus = status;
-      if (status == ConnectionStatus.online) {
+      if (status == ConnectionStatus.serverAvailable) {
         unawaited(syncPendingOperations());
       }
       notifyListeners();

@@ -26,6 +26,9 @@ class SyncStatusProvider extends ChangeNotifier {
     if (connectionStatus == ConnectionStatus.offline) {
       return 'Offline';
     }
+    if (connectionStatus == ConnectionStatus.noServer) {
+      return 'No server';
+    }
     if (pendingOperations > 0) {
       return 'Pending sync ($pendingOperations)';
     }
